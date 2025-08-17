@@ -1,0 +1,121 @@
+# TODO(tofu-lang/ci): Replace simple path filters with a dependency-aware change graph.
+# The "changes" job should eventually call a repo tool that outputs all touched
+# projects AND their reverse-dependents (e.g., JSON matrix) so CI runs the right jobs.
+
+name: ci
+
+on:
+  push:
+    - main
+  pull_request:
+    - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Detect what changed (for now: dumb path filters).
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      compiler: ${{ steps.filter.outputs.compiler }}
+      runtime:  ${{ steps.filter.outputs.runtime }}
+      core:     ${{ steps.filter.outputs.core }}
+      lsp:      ${{ steps.filter.outputs.lsp }}
+      docs:     ${{ steps.filter.outputs.docs }}
+      tools:    ${{ steps.filter.outputs.tools }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            compiler:
+              - 'compiler/**'
+              - '.github/workflows/ci.yml'
+            runtime:
+              - 'runtime/**'
+            core:
+              - 'core/**'
+            lsp:
+              - 'lsp/**'
+            docs:
+              - 'docs/**'
+            tools:
+              - 'tools/**'
+
+  # Compiler build & tests (matrix across OSes)
+  compiler:
+    needs: changes
+    if: needs.changes.outputs.compiler == 'true'
+    name: compiler (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        build_type: [Release]
+    steps:
+      - uses: actions/checkout@v4
+
+      # (Optional) cache CMake/ccache here
+
+      - name: Configure
+        run: cmake -S compiler -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel
+
+      # Smoke link/run using tiny runtime (POSIX only)
+      - name: Smoke test (POSIX)
+        if: runner.os != 'Windows'
+        run: |
+          ./build/mkobj
+          clang out.o runtime/c/rt0.c -o hello
+          ./hello
+
+  # Runtime build (keep simple for now)
+  runtime:
+    needs: changes
+    if: needs.changes.outputs.runtime == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build runtime
+        run: cmake -S runtime -B build-rt && cmake --build build-rt --parallel
+
+  # Core stdlib (stub – expands once self-hosting starts)
+  core:
+    needs: changes
+    if: needs.changes.outputs.core == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Core stdlib build/tests go here"
+
+  # LSP (stub)
+  lsp:
+    needs: changes
+    if: needs.changes.outputs.lsp == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "LSP build/tests go here"
+
+  # Docs checks (links, spelling, build site, etc.)
+  docs:
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Docs checks go here"
+
+  # Tooling (formatter, generators, etc.)
+  tools:
+    needs: changes
+    if: needs.changes.outputs.tools == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Tooling checks go here"
