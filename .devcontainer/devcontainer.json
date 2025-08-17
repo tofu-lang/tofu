@@ -1,0 +1,34 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/cpp
+{
+  "name": "tofu-dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": { "VARIANT": "ubuntu-24.04", "LLVM_VERSION": "20" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools-extension-pack",
+        "llvm-vs-code-extensions.vscode-clangd"
+      ]
+    },
+    "settings": {
+      "cmake.generator": "Ninja",
+      "cmake.sourceDirectory": "${workspaceFolder}/compiler",
+      "cmake.buildDirectory": "${workspaceFolder}/build",
+      "cmake.configureArgs": [
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DLLVM_DIR=${containerEnv:LLVM_DIR}"
+      ],
+      "clangd.arguments": ["--clang-tidy", "--completion-style=detailed"]
+    }
+  },
+  "postCreateCommand": "clang --version && clangd --version || true",
+  "remoteUser": "vscode"
+  // Configure tool-specific properties.
+  // "customizations": {},
+
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root"
+}
