@@ -1,0 +1,28 @@
+# Build system directories and files
+/build/
+/build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+*.ninja
+.ninja_log
+.ninja_deps
+
+# Compiled objects and binaries
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+
+# Editor and OS files
+/.vscode/
+*.swp
+*~
+.DS_Store
